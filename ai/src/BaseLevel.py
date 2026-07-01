@@ -5,6 +5,8 @@ from utils import load_game_map
 from spiked_ball import SpikedBall
 from fruit_item import FruitItem
 from ai_algorithms import csp_spawn_positions
+from pixel_text import PixelText
+from sound_manager import play_effect, stop_all_sounds, stop_menu_music
 
 
 class BaseLevel(arcade.View):
@@ -45,6 +47,16 @@ class BaseLevel(arcade.View):
         self.death_timer = 0.0
         self.level_complete = False
         self.respawn_invincible_time = 1.0
+        self.is_paused = False
+        self.pause_selected_index = 0
+        self.pause_options = [
+            {"label": "TIẾP TỤC", "action": "resume"},
+            {"label": "TRANG CHỦ", "action": "home"},
+            {"label": "THOÁT", "action": "exit"},
+        ]
+
+    def on_show_view(self):
+        stop_menu_music()
 
     def load_level_setup(self, map_name):
         self.tile_map, self.scene, self.map_width_pixels = load_game_map(map_name)
@@ -137,6 +149,11 @@ class BaseLevel(arcade.View):
         self.scene.add_sprite_list("CSP_Fruits", sprite_list=self.fruits_list)
 
     def on_update(self, delta_time):
+        if self.is_paused:
+            if self.player:
+                self.player.change_x = 0
+            return
+
         if self.fade_state == "FADE_IN":
             self.fade_alpha = max(0, self.fade_alpha - self.fade_speed)
             if self.fade_alpha == 0:
@@ -172,6 +189,7 @@ class BaseLevel(arcade.View):
             self.view_left = arcade.math.lerp(self.view_left, target_x, 0.1)
 
             if self.player.center_y < -100:
+                play_effect("die", volume=0.75)
                 self.reset_player()
                 return
 
@@ -229,6 +247,7 @@ class BaseLevel(arcade.View):
             hit_fruits = arcade.check_for_collision_with_list(self.player, self.fruits_list)
             for fruit in hit_fruits:
                 fruit.remove_from_sprite_lists()
+                play_effect("collectitem", volume=0.72)
                 if not self.player.is_big and not self.player.has_grown_big_once:
                     self.player.is_big = True
                     self.player.has_grown_big_once = True
@@ -267,6 +286,7 @@ class BaseLevel(arcade.View):
                 else:
                     self.is_dying = True
                     self.death_timer = 0.0
+                    play_effect("die", volume=0.75)
                     self.player.play_disappear()
                     return
 
@@ -278,6 +298,7 @@ class BaseLevel(arcade.View):
             for ep in arcade.check_for_collision_with_list(self.player, self.end_points):
                 if not ep.activated:
                     ep.activate()
+                    play_effect("finish", volume=0.85)
                     self.level_complete = True
                     self.player.play_disappear()
 
@@ -300,6 +321,73 @@ class BaseLevel(arcade.View):
                 (0, 0, 0, int(self.fade_alpha))
             )
 
+        if self.is_paused:
+            self.draw_pause_menu()
+
+    def draw_pause_menu(self):
+        panel_center_x = self.view_left + GAME_WIDTH / 2
+        panel_center_y = GAME_HEIGHT / 2
+
+        arcade.draw_rect_filled(
+            arcade.XYWH(panel_center_x, panel_center_y, GAME_WIDTH, GAME_HEIGHT),
+            (0, 0, 0, 125)
+        )
+        arcade.draw_rect_filled(
+            arcade.XYWH(panel_center_x, panel_center_y + 10, 430, 330),
+            UI_PANEL_COLOR
+        )
+        arcade.draw_rect_outline(
+            arcade.XYWH(panel_center_x, panel_center_y + 10, 430, 330),
+            UI_SELECTED_COLOR,
+            4
+        )
+
+        PixelText(
+            "TẠM DỪNG",
+            panel_center_x,
+            panel_center_y + 120,
+            UI_TITLE_COLOR,
+            size=30,
+            anchor_x="center",
+            bold=True
+        ).draw()
+
+        start_y = panel_center_y + 40
+        for index, option in enumerate(self.pause_options):
+            is_selected = index == self.pause_selected_index
+            y = start_y - index * 62
+            fill_color = UI_PANEL_SELECTED_COLOR if is_selected else UI_PANEL_COLOR
+            border_color = UI_SELECTED_COLOR if is_selected else UI_MUTED_TEXT_COLOR
+            text_color = UI_TITLE_COLOR if is_selected else UI_SECONDARY_TEXT_COLOR
+
+            arcade.draw_rect_filled(
+                arcade.XYWH(panel_center_x, y, 250, 44),
+                fill_color
+            )
+            arcade.draw_rect_outline(
+                arcade.XYWH(panel_center_x, y, 250, 44),
+                border_color,
+                3 if is_selected else 2
+            )
+            PixelText(
+                option["label"],
+                panel_center_x,
+                y - 8,
+                text_color,
+                size=16,
+                anchor_x="center",
+                bold=is_selected
+            ).draw()
+
+        PixelText(
+            "W/S hoặc ↑/↓ để chọn  |  ENTER xác nhận  |  ESC tiếp tục",
+            panel_center_x,
+            panel_center_y - 135,
+            UI_MAIN_TEXT_COLOR,
+            size=10,
+            anchor_x="center"
+        ).draw()
+
     def reset_player(self):
         self.player.center_x, self.player.center_y = self.respawn_x, self.respawn_y
         self.player.change_x = self.player.change_y = 0
@@ -308,12 +396,55 @@ class BaseLevel(arcade.View):
         self.player.invincible_timer = self.respawn_invincible_time
         self.player.alpha = 255
         self.player.play_appear()
+        play_effect("spawn", volume=0.65)
+
+    def toggle_pause(self):
+        if self.fade_state != "PLAYING" or self.level_complete:
+            return
+
+        self.is_paused = not self.is_paused
+        self.left_pressed = False
+        self.right_pressed = False
+        self.shift_pressed = False
+        if self.player:
+            self.player.change_x = 0
+        play_effect("selectbutton", volume=0.7)
+
+    def move_pause_selection(self, direction):
+        self.pause_selected_index = (self.pause_selected_index + direction) % len(self.pause_options)
+        play_effect("selectbutton", volume=0.65)
+
+    def activate_pause_selection(self):
+        action = self.pause_options[self.pause_selected_index]["action"]
+        play_effect("selectbutton", volume=0.78)
+
+        if action == "resume":
+            self.is_paused = False
+        elif action == "home":
+            from menu_view import MenuView
+            self.window.show_view(MenuView())
+        elif action == "exit":
+            stop_all_sounds()
+            arcade.close_window()
 
     def on_key_press(self, key, modifiers):
+        if self.is_paused:
+            if key in (arcade.key.UP, arcade.key.W):
+                self.move_pause_selection(-1)
+            elif key in (arcade.key.DOWN, arcade.key.S):
+                self.move_pause_selection(1)
+            elif key == arcade.key.ENTER:
+                self.activate_pause_selection()
+            elif key == arcade.key.ESCAPE:
+                self.toggle_pause()
+            return
+
         if self.fade_state != "PLAYING" or not self.player:
             return
 
-        if key in (arcade.key.LEFT, arcade.key.A):
+        if key == arcade.key.ESCAPE:
+            self.toggle_pause()
+        elif key in (arcade.key.LEFT, arcade.key.A):
             self.left_pressed = True
         elif key in (arcade.key.RIGHT, arcade.key.D):
             self.right_pressed = True
@@ -322,9 +453,11 @@ class BaseLevel(arcade.View):
         elif key in (arcade.key.SPACE, arcade.key.W, arcade.key.UP):
             if self.physics_engine and self.physics_engine.can_jump():
                 self.player.change_y = PLAYER_JUMP_SPEED
+                play_effect("jump", volume=0.72)
         elif key == arcade.key.F:
             if self.player.spiked_ball_stock > 0:
                 self.player.spiked_ball_stock -= 1
+                play_effect("throw", volume=0.72)
                 direction = 1 if self.player.character_face_direction == 0 else -1
                 ball = SpikedBall(self.player.center_x, self.player.center_y, direction)
                 self.projectiles.append(ball)

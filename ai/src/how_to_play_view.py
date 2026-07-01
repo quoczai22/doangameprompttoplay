@@ -2,12 +2,15 @@ import arcade
 from Settings import SCREEN_WIDTH, SCREEN_HEIGHT
 from LoadMap1 import LoadMap1
 from pixel_text import PixelText
+from sound_manager import play_effect, stop_effect, stop_menu_music
 
 
 class HowToPlayView(arcade.View):
-    def __init__(self, character_folder="Pink Man"):
+    def __init__(self, character_folder="Pink Man", level_class=LoadMap1, level_label="MÀN 1"):
         super().__init__()
         self.character_folder = character_folder
+        self.level_class = level_class
+        self.level_label = level_label
 
         self.guide_lines = [
             "HƯỚNG DẪN CHƠI\n\n"
@@ -25,7 +28,8 @@ class HowToPlayView(arcade.View):
             "TƯƠNG TÁC TRONG GAME:\n"
             "- Chạm checkpoint để lưu vị trí hồi sinh\n"
             "- Nhặt vật phẩm để nhận lợi ích\n"
-            "- Nếu có đạn gai, nhấn F để bắn",
+            "- Nếu có đạn gai, nhấn F để bắn\n"
+            "- Nhấn ESC để tạm dừng và mở menu",
 
             "LƯU Ý:\n"
             "- Hãy tránh các bẫy như gai, vật cản chuyển động\n"
@@ -42,9 +46,10 @@ class HowToPlayView(arcade.View):
         self.char_index = 0
         self.frame_counter = 0
         self.typing_speed = 2
+        self.typing_player = None
 
         self.title_text = PixelText(
-            "Hướng dẫn chơi:",
+            f"Hướng dẫn chơi: {self.level_label}",
             50,
             SCREEN_HEIGHT - 100,
             arcade.color.ORANGE_RED,
@@ -70,6 +75,11 @@ class HowToPlayView(arcade.View):
             self.frame_counter = 0
             self.text_objects = []
 
+    def stop_typing_sound(self):
+        if self.typing_player:
+            stop_effect("click")
+            self.typing_player = None
+
     def rebuild_text_objects(self):
         self.text_objects = []
         lines = self.text_to_display.split("\n")
@@ -89,6 +99,10 @@ class HowToPlayView(arcade.View):
     def on_show_view(self):
         arcade.set_background_color(arcade.color.BLACK)
         self.window.set_mouse_visible(False)
+        stop_menu_music()
+
+    def on_hide_view(self):
+        self.stop_typing_sound()
 
     def on_update(self, delta_time):
         is_typing = self.char_index < len(self.full_text)
@@ -99,6 +113,11 @@ class HowToPlayView(arcade.View):
                 self.text_to_display += self.full_text[self.char_index]
                 self.char_index += 1
                 self.rebuild_text_objects()
+
+            if self.typing_player is None:
+                self.typing_player = play_effect("click", volume=0.36, looping=True)
+        else:
+            self.stop_typing_sound()
 
     def on_draw(self):
         self.clear()
@@ -116,6 +135,7 @@ class HowToPlayView(arcade.View):
         if key == arcade.key.ENTER:
             if self.char_index < len(self.full_text):
                 # Hiện toàn bộ đoạn hiện tại ngay lập tức
+                self.stop_typing_sound()
                 self.text_to_display = self.full_text
                 self.char_index = len(self.full_text)
                 self.rebuild_text_objects()
@@ -125,10 +145,13 @@ class HowToPlayView(arcade.View):
                 if self.current_line_index < len(self.guide_lines):
                     self.start_new_line()
                 else:
-                    next_view = LoadMap1(character_folder=self.character_folder)
+                    self.stop_typing_sound()
+                    next_view = self.level_class(character_folder=self.character_folder)
                     next_view.setup()
                     self.window.show_view(next_view)
 
         elif key == arcade.key.ESCAPE:
-            from menu_view import MenuView
-            self.window.show_view(MenuView())
+            self.stop_typing_sound()
+            play_effect("selectbutton", volume=0.7)
+            from level_select_view import LevelSelectView
+            self.window.show_view(LevelSelectView())

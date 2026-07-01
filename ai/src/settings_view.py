@@ -1,4 +1,5 @@
 import arcade
+from sound_manager import play_effect, play_menu_music
 
 from Settings import (
     SCREEN_HEIGHT,
@@ -47,6 +48,7 @@ class SettingsView(arcade.View):
     def on_show_view(self):
         arcade.set_background_color((18, 20, 30))
         self.window.set_mouse_visible(False)
+        play_menu_music()
 
     def on_draw(self):
         self.clear()
@@ -98,10 +100,13 @@ class SettingsView(arcade.View):
 
     def move_selection(self, direction):
         self.selected_index = (self.selected_index + direction) % len(SETTINGS_OPTIONS)
+        play_effect("selectbutton", volume=0.65)
 
     def open_selected(self):
+        play_effect("selectbutton", volume=0.78)
         if self.selected_index == 0:
-            self.notice_message = "Cài đặt âm thanh sẽ được thêm sau."
+            from audio_settings_view import AudioSettingsView
+            self.window.show_view(AudioSettingsView())
             return
 
         from character_select_view import CharacterSelectView
@@ -115,5 +120,6 @@ class SettingsView(arcade.View):
         elif key == arcade.key.ENTER:
             self.open_selected()
         elif key == arcade.key.ESCAPE:
+            play_effect("selectbutton", volume=0.7)
             from menu_view import MenuView
             self.window.show_view(MenuView())

@@ -9,6 +9,7 @@ from end_point import EndPoint
 from moving_platform import MovingPlatform
 from mushroom import Mushroom
 from ai_algorithms import csp_spawn_positions
+from sound_manager import play_effect
 
 
 class BaseMapLevel(BaseLevel):
@@ -43,6 +44,7 @@ class BaseMapLevel(BaseLevel):
         self.player.spiked_ball_stock = 0
         self.player.has_grown_big_once = False
         self.player.play_appear()
+        play_effect("spawn", volume=0.65)
 
         # Đọc dữ liệu từ bản đồ Tiled để gắn sự kiện
         if "Checkpoints" in self.tile_map.sprite_lists:
@@ -161,6 +163,9 @@ class BaseMapLevel(BaseLevel):
         prev_player_bottom = self.player.bottom if self.player else 0
         super().on_update(delta_time)
 
+        if self.is_paused:
+            return
+
         # Chỉ thêm phần chuyển màn, không đụng logic gameplay cũ
         if self.level_complete and self.next_level_class is not None and not self.is_switching_level:
             self.is_switching_level = True
@@ -243,6 +248,7 @@ class BaseMapLevel(BaseLevel):
                     else:
                         self.is_dying = True
                         self.death_timer = 0.0
+                        play_effect("die", volume=0.75)
                         self.player.play_disappear()
                         return
 
@@ -322,7 +328,7 @@ class BaseMapLevel(BaseLevel):
         self.enemy_list.clear()
         self.enemy_physics_engines.clear()
 
-        target_count = 3
+        target_count = random.randint(3, 7)
         actual_count = min(target_count, len(candidate_positions))
 
         selected_positions = []

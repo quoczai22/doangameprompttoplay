@@ -1,4 +1,5 @@
 import arcade
+from sound_manager import play_effect, play_menu_music
 
 from Settings import (
     SCREEN_HEIGHT,
@@ -19,6 +20,7 @@ from pink_man import PinkMan
 CHARACTER_OPTIONS = [
     {"label": "PINK MAN", "folder": "Pink Man"},
     {"label": "NINJA FROG", "folder": "Ninja Frog"},
+    {"label": "MASK DUDE", "folder": "Mask Dude"},
 ]
 
 
@@ -35,16 +37,19 @@ class CharacterSelectView(arcade.View):
         )
         self.preview_sprites = arcade.SpriteList()
         self.card_centers = []
+        self.card_width = 178
+        self.card_height = 220
 
-        spacing = 260
-        start_x = SCREEN_WIDTH / 2 - spacing / 2
-        y = SCREEN_HEIGHT / 2 + 20
+        spacing = min(245, (SCREEN_WIDTH - 180) / max(1, len(CHARACTER_OPTIONS)))
+        total_width = spacing * (len(CHARACTER_OPTIONS) - 1)
+        start_x = SCREEN_WIDTH / 2 - total_width / 2
+        y = SCREEN_HEIGHT / 2 + 18
 
         for index, option in enumerate(CHARACTER_OPTIONS):
             sprite = PinkMan(option["folder"])
             sprite.center_x = start_x + spacing * index
             sprite.center_y = y
-            sprite.scale = 3.2
+            sprite.scale = 2.9
             self.preview_sprites.append(sprite)
             self.card_centers.append((sprite.center_x, sprite.center_y))
 
@@ -69,6 +74,7 @@ class CharacterSelectView(arcade.View):
     def on_show_view(self):
         arcade.set_background_color((18, 20, 30))
         self.window.set_mouse_visible(False)
+        play_menu_music()
 
     def on_update(self, delta_time):
         self.preview_sprites.update_animation(delta_time)
@@ -82,13 +88,15 @@ class CharacterSelectView(arcade.View):
             is_selected = index == self.selected_index
             border_color = UI_SELECTED_COLOR if is_selected else UI_MUTED_TEXT_COLOR
             fill_color = UI_PANEL_SELECTED_COLOR if is_selected else UI_PANEL_COLOR
+            card_width = self.card_width + (16 if is_selected else 0)
+            card_height = self.card_height + (14 if is_selected else 0)
 
             arcade.draw_rect_filled(
-                arcade.XYWH(center_x, center_y - 5, 190, 230),
+                arcade.XYWH(center_x, center_y - 5, card_width, card_height),
                 fill_color
             )
             arcade.draw_rect_outline(
-                arcade.XYWH(center_x, center_y - 5, 190, 230),
+                arcade.XYWH(center_x, center_y - 5, card_width, card_height),
                 border_color,
                 4 if is_selected else 2
             )
@@ -96,9 +104,9 @@ class CharacterSelectView(arcade.View):
             label = PixelText(
                 option["label"],
                 center_x,
-                center_y - 105,
+                center_y - 98,
                 UI_TITLE_COLOR if is_selected else UI_SECONDARY_TEXT_COLOR,
-                size=16,
+                size=15 if len(CHARACTER_OPTIONS) >= 3 else 16,
                 anchor_x="center",
                 bold=is_selected
             )
@@ -109,11 +117,14 @@ class CharacterSelectView(arcade.View):
 
     def select_previous(self):
         self.selected_index = (self.selected_index - 1) % len(CHARACTER_OPTIONS)
+        play_effect("selectbutton", volume=0.65)
 
     def select_next(self):
         self.selected_index = (self.selected_index + 1) % len(CHARACTER_OPTIONS)
+        play_effect("selectbutton", volume=0.65)
 
     def save_selection(self):
+        play_effect("selectbutton", volume=0.78)
         selected_folder = CHARACTER_OPTIONS[self.selected_index]["folder"]
         set_selected_character_folder(selected_folder)
         from settings_view import SettingsView
@@ -127,5 +138,6 @@ class CharacterSelectView(arcade.View):
         elif key == arcade.key.ENTER:
             self.save_selection()
         elif key == arcade.key.ESCAPE:
+            play_effect("selectbutton", volume=0.7)
             from settings_view import SettingsView
             self.window.show_view(SettingsView())

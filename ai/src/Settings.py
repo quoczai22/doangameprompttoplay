@@ -1,9 +1,13 @@
 import pathlib
 import os
+import sys
 
 # --- 1. ĐƯỜNG DẪN TÀI NGUYÊN (QUAN TRỌNG NHẤT) ---
 FILE_PATH = pathlib.Path(__file__).parent.absolute()
-ROOT_DIR = FILE_PATH.parent
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    ROOT_DIR = pathlib.Path(sys._MEIPASS)
+else:
+    ROOT_DIR = FILE_PATH.parent
 ASSETS_PATH = os.path.join(ROOT_DIR, "assets")
 
 # --- 2. CẤU HÌNH MÀN HÌNH (SPLIT SCREEN) ---
@@ -11,7 +15,7 @@ GAME_WIDTH = 1000
 GAME_HEIGHT = 600
 SCREEN_WIDTH = GAME_WIDTH
 SCREEN_HEIGHT = GAME_HEIGHT
-SCREEN_TITLE = "Thử thách phiêu lưu (mario)"
+SCREEN_TITLE = "Mario remake"
 
 # --- 3. TỶ LỆ SCALE ---
 TILE_SCALING = 1.5

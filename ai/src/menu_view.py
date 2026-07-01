@@ -1,5 +1,6 @@
 import arcade
 import os
+from sound_manager import play_effect, play_menu_music, stop_all_sounds
 from Settings import (
     ASSETS_PATH,
     SCREEN_HEIGHT,
@@ -11,8 +12,6 @@ from Settings import (
     UI_SHADOW_COLOR,
     UI_TITLE_COLOR,
 )
-from game_settings import get_selected_character_folder
-from how_to_play_view import HowToPlayView
 from pixel_text import PixelText
 
 
@@ -114,6 +113,7 @@ class MenuView(arcade.View):
     def on_show_view(self):
         self.window.set_mouse_visible(True)
         arcade.set_background_color((20, 20, 20))
+        play_menu_music()
 
     def on_update(self, delta_time):
         self.blink_timer += delta_time
@@ -138,16 +138,19 @@ class MenuView(arcade.View):
 
     def move_selection(self, direction):
         self.selected_index = (self.selected_index + direction) % len(self.menu_items)
+        play_effect("selectbutton", volume=0.65)
 
     def activate_selected(self):
+        play_effect("selectbutton", volume=0.78)
         action = self.menu_items[self.selected_index]["action"]
         if action == "start":
-            next_view = HowToPlayView(character_folder=get_selected_character_folder())
-            self.window.show_view(next_view)
+            from level_select_view import LevelSelectView
+            self.window.show_view(LevelSelectView())
         elif action == "settings":
             from settings_view import SettingsView
             self.window.show_view(SettingsView())
         elif action == "exit":
+            stop_all_sounds()
             arcade.close_window()
 
     def on_key_press(self, key, modifiers):
@@ -161,8 +164,10 @@ class MenuView(arcade.View):
             self.activate_selected()
 
         elif key == arcade.key.G:
+            play_effect("selectbutton", volume=0.78)
             from settings_view import SettingsView
             self.window.show_view(SettingsView())
 
         elif key == arcade.key.ESCAPE:
+            stop_all_sounds()
             arcade.close_window()
