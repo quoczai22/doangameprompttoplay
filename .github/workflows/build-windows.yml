@@ -51,7 +51,6 @@ jobs:
           name: Mario-remake-windows
           path: release/Mario remake.exe
           if-no-files-found: error
-          archive: false
 
       - name: Upload cover artifact
         uses: actions/upload-artifact@v7
@@ -59,7 +58,6 @@ jobs:
           name: Mario-remake-cover
           path: release/mario_remake_cover.png
           if-no-files-found: error
-          archive: false
 
   build-macos:
     name: Build macOS app
@@ -113,7 +111,6 @@ jobs:
           name: Mario-remake-macos-intel
           path: release/Mario remake-macOS.zip
           if-no-files-found: error
-          archive: false
 
   publish-release:
     name: Publish GitHub Release
