@@ -260,6 +260,7 @@ class BaseMapLevel(BaseLevel):
 
         self.grid_walls.clear()
         ground_tiles = []
+        floating_tiles = []
         hazards = set()
 
         for layer in ["Ground", "Solid Floating Platforms", "Boundary Walls"]:
@@ -267,8 +268,10 @@ class BaseMapLevel(BaseLevel):
                 for sprite in self.tile_map.sprite_lists[layer]:
                     gx, gy = int(sprite.center_x // tile_w), int(sprite.center_y // tile_h)
                     self.grid_walls.add((gx, gy))
-                    if layer in ["Ground", "Solid Floating Platforms"]:
+                    if layer == "Ground":
                         ground_tiles.append((gx, gy))
+                    elif layer == "Solid Floating Platforms":
+                        floating_tiles.append((gx, gy))
 
         if "Hazards" in self.tile_map.sprite_lists:
             for sprite in self.tile_map.sprite_lists["Hazards"]:
@@ -277,21 +280,43 @@ class BaseMapLevel(BaseLevel):
 
         self.grid_hazards = hazards.copy()
 
-        candidate_positions = []
+        ground_candidate_positions = []
+        floating_candidate_positions = []
         end_tiles = []
         for ep in self.end_points:
             end_tiles.append((int(ep.center_x // tile_w), int(ep.center_y // tile_h)))
 
-        for (gx, gy) in ground_tiles:
-            spawn_x, spawn_y = gx, gy + 1
-            if (
-                spawn_x > 15
-                and (spawn_x, spawn_y) not in self.grid_walls
-                and (spawn_x, spawn_y) not in hazards
-                and (spawn_x, spawn_y) not in end_tiles
-            ):
-                candidate_positions.append((spawn_x, spawn_y))
+        def collect_spawn_candidates(source_tiles):
+            candidates = []
+            for (gx, gy) in source_tiles:
+                spawn_x, spawn_y = gx, gy + 1
+                if (
+                    spawn_x > 15
+                    and (spawn_x, spawn_y) not in self.grid_walls
+                    and (spawn_x, spawn_y) not in hazards
+                    and (spawn_x, spawn_y) not in end_tiles
+                ):
+                    candidates.append((spawn_x, spawn_y))
 
+            return sorted(set(candidates), key=lambda p: (p[0], p[1]))
+
+        ground_candidate_positions = collect_spawn_candidates(ground_tiles)
+        floating_candidate_positions = collect_spawn_candidates(floating_tiles)
+
+        def far_enough_from_selected(position, selected_positions, min_distance):
+            for selected in selected_positions:
+                distance = abs(position[0] - selected[0]) + abs(position[1] - selected[1])
+                if distance < min_distance:
+                    return False
+            return True
+
+        def filter_far_candidates(candidate_positions, selected_positions, min_distance):
+            return [
+                position for position in candidate_positions
+                if far_enough_from_selected(position, selected_positions, min_distance)
+            ]
+
+        candidate_positions = floating_candidate_positions + ground_candidate_positions
         candidate_positions = sorted(set(candidate_positions), key=lambda p: (p[0], p[1]))
 
         self.enemy_list.clear()
@@ -302,15 +327,38 @@ class BaseMapLevel(BaseLevel):
 
         selected_positions = []
         if actual_count > 0:
-            csp_result = csp_spawn_positions(
-                actual_count,
-                candidate_positions,
-                forbidden_positions=set(end_tiles) | hazards,
-                min_distance=6,
-                trace_limit=0,
-                detail_variable_limit=3,
-            )
-            selected_positions = csp_result.get("positions", [])
+            min_enemy_distance = 6
+            floating_target_count = 0
+            if floating_candidate_positions:
+                floating_target_count = min(len(floating_candidate_positions), actual_count)
+
+            if floating_target_count > 0:
+                floating_result = csp_spawn_positions(
+                    floating_target_count,
+                    floating_candidate_positions,
+                    forbidden_positions=set(end_tiles) | hazards,
+                    min_distance=min_enemy_distance,
+                    trace_limit=0,
+                    detail_variable_limit=3,
+                )
+                selected_positions.extend(floating_result.get("positions", []))
+
+            remaining_count = actual_count - len(selected_positions)
+            if remaining_count > 0:
+                remaining_candidates = filter_far_candidates(
+                    ground_candidate_positions + floating_candidate_positions,
+                    selected_positions,
+                    min_enemy_distance,
+                )
+                remaining_result = csp_spawn_positions(
+                    remaining_count,
+                    remaining_candidates,
+                    forbidden_positions=set(end_tiles) | hazards | set(selected_positions),
+                    min_distance=min_enemy_distance,
+                    trace_limit=0,
+                    detail_variable_limit=3,
+                )
+                selected_positions.extend(remaining_result.get("positions", []))
 
         extra_platforms = self.moving_platforms_list if len(self.moving_platforms_list) > 0 else None
 
