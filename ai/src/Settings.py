@@ -24,6 +24,8 @@ PLAYER_WALK_SPEED =3
 PLAYER_RUN_SPEED = 7
 # True: Hill Climbing vẫn là chính, A*/Dijkstra hỗ trợ khi bot bị kẹt/chặn đường.
 ENABLE_PATHFINDING_SUPPORT = True
+ENABLE_BOT_PLATFORM_DROP_TEST = True
+BOT_MAX_SAFE_DROP_TILES = 8
 
 # --- 5. MÀU SẮC ---
 BACKGROUND_COLOR = (59, 122, 87) # Mã RGB thay vì dùng arcade.color

@@ -46,7 +46,9 @@ class Bot(arcade.Sprite):
         self.turn_cooldown = 0.0
         self.turn_lock_time = 0.18
 
-        self.max_safe_drop_tiles = 6
+        self.max_safe_drop_tiles = BOT_MAX_SAFE_DROP_TILES
+        self.enable_platform_drop = ENABLE_BOT_PLATFORM_DROP_TEST
+        self.is_dropping_from_platform = False
         self.use_pathfinding_support = ENABLE_PATHFINDING_SUPPORT
 
         # FSM
@@ -169,12 +171,27 @@ class Bot(arcade.Sprite):
 
         return None
 
+    def _get_immediate_front_support(self, wall_lists):
+        front_x = self._get_front_probe_x()
+        return self._has_support_at(front_x, self.bottom - 4, wall_lists)
+
     def should_avoid_edge(self, wall_lists, hazard_lists):
         if abs(self.change_y) > 0.1:
             return False
 
         safe_drop = self._get_safe_drop_distance(wall_lists, hazard_lists)
         return safe_drop is None
+
+    def should_drop_from_platform(self, wall_lists, hazard_lists):
+        if not self.enable_platform_drop or abs(self.change_y) > 0.1:
+            return False
+
+        has_front_support = self._get_immediate_front_support(wall_lists)
+        if has_front_support:
+            return False
+
+        safe_drop = self._get_safe_drop_distance(wall_lists, hazard_lists)
+        return safe_drop is not None and safe_drop > 0
 
     def _trace_bresenham_cells(self, start, end, walls):
         x0, y0 = start
@@ -225,6 +242,11 @@ class Bot(arcade.Sprite):
 
         if self.turn_cooldown > 0:
             self.turn_cooldown -= delta_time
+
+        if abs(self.change_y) > 0.1:
+            self.is_dropping_from_platform = True
+            return
+        self.is_dropping_from_platform = False
 
         self.ai_timer += delta_time
         if self.ai_timer < self.ai_interval:
@@ -291,7 +313,8 @@ class Bot(arcade.Sprite):
             return
 
         hit_wall = self.check_wall(wall_lists)
-        avoid_edge = self.avoid_ledges and self.should_avoid_edge(wall_lists, hazard_lists)
+        can_drop = self.should_drop_from_platform(wall_lists, hazard_lists)
+        avoid_edge = self.avoid_ledges and (not can_drop) and self.should_avoid_edge(wall_lists, hazard_lists)
 
         if hit_wall or avoid_edge:
             self.flip_direction()
