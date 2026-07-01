@@ -140,11 +140,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" `
+          $tag = "${{ github.ref_name }}"
+          $title = "Mario remake $tag"
+          $notes = "Desktop builds for Mario remake. Download Mario remake.exe for Windows. The macOS build will be attached automatically when the macOS runner finishes."
+
+          gh release view $tag
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title $title --notes $notes
+          } else {
+            gh release edit $tag --title $title --notes $notes
+          }
+
+          gh release upload $tag `
             "release-assets\windows\Mario remake.exe" `
             "release-assets\cover\mario_remake_cover.png" `
-            --title "Mario remake ${{ github.ref_name }}" `
-            --notes "Desktop builds for Mario remake. The macOS build will be attached automatically when the macOS runner finishes."
+            --clobber
 
   publish-macos-release:
     name: Attach macOS Release Asset
