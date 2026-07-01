@@ -64,6 +64,7 @@ jobs:
   build-macos:
     name: Build macOS app
     runs-on: macos-13
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout
@@ -117,16 +118,21 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     runs-on: windows-latest
-    needs:
-      - build-windows
-      - build-macos
+    needs: build-windows
     if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Download build artifacts
         uses: actions/download-artifact@v7
         with:
-          path: release-assets
+          name: Mario-remake-windows
+          path: release-assets/windows
+
+      - name: Download cover artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: Mario-remake-cover
+          path: release-assets/cover
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -135,8 +141,31 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ github.ref_name }}" `
-            "release-assets\Mario-remake-windows\Mario remake.exe" `
-            "release-assets\Mario-remake-macos-intel\Mario remake-macOS.zip" `
-            "release-assets\Mario-remake-cover\mario_remake_cover.png" `
+            "release-assets\windows\Mario remake.exe" `
+            "release-assets\cover\mario_remake_cover.png" `
             --title "Mario remake ${{ github.ref_name }}" `
-            --notes "Desktop builds for Mario remake."
+            --notes "Desktop builds for Mario remake. The macOS build will be attached automatically when the macOS runner finishes."
+
+  publish-macos-release:
+    name: Attach macOS Release Asset
+    runs-on: windows-latest
+    needs:
+      - build-macos
+      - publish-release
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: Mario-remake-macos-intel
+          path: release-assets/macos
+
+      - name: Attach macOS build to release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" `
+            "release-assets\macos\Mario remake-macOS.zip" `
+            --clobber
