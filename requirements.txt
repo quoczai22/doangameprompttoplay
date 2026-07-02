@@ -1,4 +1,5 @@
 arcade>=3.3,<4
+pytiled-parser[zstd]>=2.2,<3
 Pillow>=10,<13
 pyinstaller>=6.0,<7
 zstandard>=0.22,<1
