@@ -19,6 +19,9 @@ class MenuView(arcade.View):
     def __init__(self):
         super().__init__()
 
+        self.camera = arcade.camera.Camera2D(
+            viewport=arcade.LBWH(left=0, bottom=0, width=SCREEN_WIDTH, height=SCREEN_HEIGHT)
+        )
         self.ui_list = arcade.SpriteList()
         self.selected_index = 0
         self.menu_items = [
@@ -112,6 +115,8 @@ class MenuView(arcade.View):
 
     def on_show_view(self):
         self.window.set_mouse_visible(True)
+        self.camera.position = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+        self.camera.use()
         arcade.set_background_color((20, 20, 20))
         play_menu_music()
 
@@ -123,6 +128,7 @@ class MenuView(arcade.View):
 
     def on_draw(self):
         self.clear()
+        self.camera.use()
 
         self.ui_list.draw()
 
