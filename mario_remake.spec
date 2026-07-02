@@ -4,11 +4,11 @@ from pathlib import Path
 
 
 project_root = Path.cwd()
-src_dir = project_root / "ai" / "src"
+src_dir = project_root / "gamemarioduoc" / "src"
 
 datas = [
-    (str(project_root / "ai" / "assets"), "assets"),
-    (str(project_root / "ai" / "Free"), "Free"),
+    (str(project_root / "gamemarioduoc" / "assets"), "assets"),
+    (str(project_root / "gamemarioduoc" / "Free"), "Free"),
 ]
 
 
@@ -46,5 +46,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=str(project_root / "ai" / "assets" / "images" / "mario_remake.ico"),
+    icon=str(project_root / "gamemarioduoc" / "assets" / "images" / "mario_remake.ico"),
 )

@@ -33,7 +33,7 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Compile check
-        run: python -m compileall ai\src
+        run: python -m compileall gamemarioduoc\src
 
       - name: Build one-file EXE
         run: python -m PyInstaller mario_remake.spec --noconfirm --clean
@@ -43,7 +43,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path release | Out-Null
           Copy-Item -LiteralPath "dist\Mario remake.exe" -Destination "release\Mario remake.exe"
-          Copy-Item -LiteralPath "ai\assets\images\mario_remake_cover.png" -Destination "release\mario_remake_cover.png"
+          Copy-Item -LiteralPath "gamemarioduoc\assets\images\mario_remake_cover.png" -Destination "release\mario_remake_cover.png"
 
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v7
