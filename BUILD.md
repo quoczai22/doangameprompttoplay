@@ -47,7 +47,7 @@ Local macOS build must be run on a Mac:
 ```bash
 python -m pip install -r requirements.txt
 mkdir -p build/icon.iconset
-sips -z 1024 1024 gamemarioduoc/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_512x512@2x.png
-iconutil -c icns build/icon.iconset -o gamemarioduoc/assets/images/mario_remake.icns
+sips -z 1024 1024 gamemario/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_512x512@2x.png
+iconutil -c icns build/icon.iconset -o gamemario/assets/images/mario_remake.icns
 python -m PyInstaller mario_remake_macos.spec --noconfirm --clean
 ```

@@ -4,11 +4,11 @@ from pathlib import Path
 
 
 project_root = Path.cwd()
-src_dir = project_root / "gamemarioduoc" / "src"
+src_dir = project_root / "gamemario" / "src"
 
 datas = [
-    (str(project_root / "gamemarioduoc" / "assets"), "assets"),
-    (str(project_root / "gamemarioduoc" / "Free"), "Free"),
+    (str(project_root / "gamemario" / "assets"), "assets"),
+    (str(project_root / "gamemario" / "Free"), "Free"),
 ]
 
 
@@ -51,6 +51,6 @@ exe = EXE(
 app = BUNDLE(
     exe,
     name="Mario remake.app",
-    icon=str(project_root / "gamemarioduoc" / "assets" / "images" / "mario_remake.icns"),
+    icon=str(project_root / "gamemario" / "assets" / "images" / "mario_remake.icns"),
     bundle_identifier="com.quoczai22.marioremake",
 )
