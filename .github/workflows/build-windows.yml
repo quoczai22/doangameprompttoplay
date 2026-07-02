@@ -8,11 +8,6 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
-    inputs:
-      release_tag:
-        description: "Release tag to attach the macOS build to, for example v1.0.5"
-        required: false
-        type: string
 
 permissions:
   contents: write
@@ -21,7 +16,6 @@ jobs:
   build-windows:
     name: Build Windows EXE
     runs-on: windows-latest
-    if: github.event_name == 'push'
 
     steps:
       - name: Checkout
@@ -65,59 +59,6 @@ jobs:
           path: release/mario_remake_cover.png
           if-no-files-found: error
 
-  build-macos:
-    name: Build macOS app
-    runs-on: macos-13
-    if: github.event_name == 'workflow_dispatch'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-
-      - name: Compile check
-        run: python -m compileall ai/src
-
-      - name: Create macOS icon
-        run: |
-          mkdir -p build/icon.iconset
-          sips -z 16 16 ai/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_16x16.png
-          sips -z 32 32 ai/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_16x16@2x.png
-          sips -z 32 32 ai/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_32x32.png
-          sips -z 64 64 ai/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_32x32@2x.png
-          sips -z 128 128 ai/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_128x128.png
-          sips -z 256 256 ai/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_128x128@2x.png
-          sips -z 256 256 ai/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_256x256.png
-          sips -z 512 512 ai/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_256x256@2x.png
-          sips -z 512 512 ai/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_512x512.png
-          sips -z 1024 1024 ai/assets/images/mario_remake_cover.png --out build/icon.iconset/icon_512x512@2x.png
-          iconutil -c icns build/icon.iconset -o ai/assets/images/mario_remake.icns
-
-      - name: Build macOS app
-        run: python -m PyInstaller mario_remake_macos.spec --noconfirm --clean
-
-      - name: Zip macOS app
-        run: |
-          mkdir -p release
-          ditto -c -k --sequesterRsrc --keepParent "dist/Mario remake.app" "release/Mario remake-macOS.zip"
-
-      - name: Upload macOS artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: Mario-remake-macos-intel
-          path: release/Mario remake-macOS.zip
-          if-no-files-found: error
-
   publish-release:
     name: Publish GitHub Release
     runs-on: windows-latest
@@ -158,28 +99,4 @@ jobs:
           gh release upload $tag `
             "release-assets\windows\Mario remake.exe" `
             "release-assets\cover\mario_remake_cover.png" `
-            --clobber
-
-  publish-macos-release:
-    name: Attach macOS Release Asset
-    runs-on: windows-latest
-    needs: build-macos
-    if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
-
-    steps:
-      - name: Download macOS artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: Mario-remake-macos-intel
-          path: release-assets/macos
-
-      - name: Attach macOS build to release
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          gh release view "${{ inputs.release_tag }}"
-          gh release upload "${{ inputs.release_tag }}" `
-            "release-assets\macos\Mario remake-macOS.zip" `
             --clobber
