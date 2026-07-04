@@ -137,6 +137,10 @@ class Bot(arcade.Sprite):
         look_ahead = 10
         return self.right + look_ahead if self.character_face_direction == RIGHT_FACING else self.left - look_ahead
 
+    def _get_front_edge_probe_x(self):
+        edge_offset = 1
+        return self.right + edge_offset if self.character_face_direction == RIGHT_FACING else self.left - edge_offset
+
     def _has_hazard_at(self, x, y, hazard_lists):
         if not hazard_lists:
             return False
@@ -157,7 +161,7 @@ class Bot(arcade.Sprite):
         if not wall_lists:
             return None
 
-        front_x = self._get_front_probe_x()
+        front_x = self._get_front_edge_probe_x()
         tile_h = 32 * TILE_SCALING
 
         for level in range(0, self.max_safe_drop_tiles + 1):
@@ -172,7 +176,7 @@ class Bot(arcade.Sprite):
         return None
 
     def _get_immediate_front_support(self, wall_lists):
-        front_x = self._get_front_probe_x()
+        front_x = self._get_front_edge_probe_x()
         return self._has_support_at(front_x, self.bottom - 4, wall_lists)
 
     def should_avoid_edge(self, wall_lists, hazard_lists):
