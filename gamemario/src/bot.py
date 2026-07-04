@@ -231,6 +231,28 @@ class Bot(arcade.Sprite):
 
         return visited, blocked_cell
 
+    def _is_player_on_same_platform(self, player, walls, grid_unit):
+        if abs(self.bottom - player.bottom) > grid_unit * 0.65:
+            return False
+
+        if not walls:
+            return True
+
+        bot_support_y = int((self.bottom - 4) // grid_unit)
+        player_support_y = int((player.bottom - 4) // grid_unit)
+        if bot_support_y != player_support_y:
+            return False
+
+        bot_grid_x = int(self.center_x // grid_unit)
+        player_grid_x = int(player.center_x // grid_unit)
+        left_x, right_x = sorted((bot_grid_x, player_grid_x))
+
+        for grid_x in range(left_x, right_x + 1):
+            if (grid_x, bot_support_y) not in walls:
+                return False
+
+        return True
+
     def update_ai(
         self,
         player,
@@ -277,15 +299,21 @@ class Bot(arcade.Sprite):
             self.last_los_cells = los_cells
             self.last_los_blocked_cell = blocked_cell
 
-        if has_line_of_sight and distance <= self.attack_radius:
+        same_platform = self._is_player_on_same_platform(player, safe_walls, grid_unit)
+        can_engage_player = has_line_of_sight and same_platform
+
+        if can_engage_player and distance <= self.attack_radius:
             self.last_seen_player_grid = goal_grid
             self.set_state(BotState.ATTACK, "Bot đã ở rất gần mục tiêu")
-        elif has_line_of_sight and distance < self.vision_radius:
+        elif can_engage_player and distance < self.vision_radius:
             self.last_seen_player_grid = goal_grid
             self.set_state(BotState.CHASE, "Bot phát hiện mục tiêu trong tầm nhìn")
-        elif self.last_seen_player_grid is not None:
+        elif self.last_seen_player_grid is not None and same_platform:
             self.set_state(BotState.SEARCH, "Mất tầm nhìn trực tiếp nhưng còn nhớ vị trí cuối cùng của người chơi")
         else:
+            self.last_seen_player_grid = None
+            self.bfs_search_targets = []
+            self.current_search_goal = None
             self.set_state(BotState.PATROL, "Không phát hiện mục tiêu")
 
         # FSM thi hành hành vi
