@@ -18,11 +18,13 @@ class WinView(arcade.View):
         from LoadMap1 import LoadMap1
         from LoadMap2 import LoadMap2
         from LoadMap3 import LoadMap3
+        from LoadMap4 import LoadMap4
 
         all_maps = {
             "Map1": LoadMap1,
             "Map2": LoadMap2,
             "Map3": LoadMap3,
+            "Map4": LoadMap4,
         }
 
         if self.current_map in all_maps:

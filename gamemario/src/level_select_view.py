@@ -39,6 +39,12 @@ LEVEL_OPTIONS = [
         "preview": "level_preview_map3.png",
         "accent": (230, 120, 92),
     },
+    {
+        "label": "MÀN 4",
+        "subtitle": "Chương 4 - Vùng hiểm trở",
+        "preview": "level_preview_map4.png",
+        "accent": (144, 214, 92),
+    },
 ]
 
 
@@ -52,8 +58,8 @@ class LevelSelectView(arcade.View):
         self.blink_timer = 0.0
         self.show_selected = True
 
-        spacing = 285
-        start_x = SCREEN_WIDTH / 2 - spacing
+        spacing = min(285, (SCREEN_WIDTH - 270) / max(1, len(LEVEL_OPTIONS) - 1))
+        start_x = SCREEN_WIDTH / 2 - spacing * (len(LEVEL_OPTIONS) - 1) / 2
         y = SCREEN_HEIGHT / 2 + 20
 
         for index, option in enumerate(LEVEL_OPTIONS):
@@ -200,9 +206,10 @@ class LevelSelectView(arcade.View):
         from LoadMap1 import LoadMap1
         from LoadMap2 import LoadMap2
         from LoadMap3 import LoadMap3
+        from LoadMap4 import LoadMap4
         from how_to_play_view import HowToPlayView
 
-        level_classes = [LoadMap1, LoadMap2, LoadMap3]
+        level_classes = [LoadMap1, LoadMap2, LoadMap3, LoadMap4]
         selected_level_class = level_classes[self.selected_index]
         selected_label = LEVEL_OPTIONS[self.selected_index]["label"]
         next_view = HowToPlayView(
