@@ -141,6 +141,10 @@ class Bot(arcade.Sprite):
         edge_offset = 1
         return self.right + edge_offset if self.character_face_direction == RIGHT_FACING else self.left - edge_offset
 
+    def _get_edge_probe_x_toward(self, target_x):
+        edge_offset = 1
+        return self.right + edge_offset if target_x >= self.center_x else self.left - edge_offset
+
     def _has_hazard_at(self, x, y, hazard_lists):
         if not hazard_lists:
             return False
@@ -177,6 +181,10 @@ class Bot(arcade.Sprite):
 
     def _get_immediate_front_support(self, wall_lists):
         front_x = self._get_front_edge_probe_x()
+        return self._has_support_at(front_x, self.bottom - 4, wall_lists)
+
+    def _has_front_support_toward(self, target_x, wall_lists):
+        front_x = self._get_edge_probe_x_toward(target_x)
         return self._has_support_at(front_x, self.bottom - 4, wall_lists)
 
     def should_avoid_edge(self, wall_lists, hazard_lists):
@@ -300,7 +308,12 @@ class Bot(arcade.Sprite):
             self.last_los_blocked_cell = blocked_cell
 
         same_platform = self._is_player_on_same_platform(player, safe_walls, grid_unit)
-        can_engage_player = has_line_of_sight and same_platform
+        has_front_support_to_player = (
+            self._has_front_support_toward(player.center_x, wall_lists)
+            if wall_lists
+            else same_platform
+        )
+        can_engage_player = has_line_of_sight and same_platform and has_front_support_to_player
 
         if can_engage_player and distance <= self.attack_radius:
             self.last_seen_player_grid = goal_grid
