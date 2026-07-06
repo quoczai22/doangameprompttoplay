@@ -81,6 +81,9 @@ class Character(arcade.Sprite):
 
     def _set_texture_keep_hitbox(self, new_texture):
         """Hàm ghi đè texture nhưng giữ nguyên hitbox chuẩn"""
+        if self.texture == new_texture:
+            return
+
         self.texture = new_texture
         if self.base_hit_box:
             self.hit_box = self.base_hit_box

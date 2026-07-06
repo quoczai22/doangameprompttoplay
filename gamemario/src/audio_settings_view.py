@@ -32,8 +32,9 @@ AUDIO_OPTIONS = [
 
 
 class AudioSettingsView(arcade.View):
-    def __init__(self):
+    def __init__(self, return_view=None):
         super().__init__()
+        self.return_view = return_view
         self.selected_index = 0
         self.title_text = PixelText(
             "CÀI ĐẶT ÂM THANH",
@@ -157,5 +158,8 @@ class AudioSettingsView(arcade.View):
             self.toggle_selected()
         elif key == arcade.key.ESCAPE:
             play_effect("selectbutton", volume=0.7)
-            from settings_view import SettingsView
-            self.window.show_view(SettingsView())
+            if self.return_view is not None:
+                self.window.show_view(self.return_view)
+            else:
+                from settings_view import SettingsView
+                self.window.show_view(SettingsView())

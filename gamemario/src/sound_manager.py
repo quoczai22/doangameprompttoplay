@@ -21,6 +21,7 @@ SUPPORTED_AUDIO_EXTENSIONS = (".wav", ".ogg")
 FALLBACK_AUDIO_EXTENSIONS = (".mp3",)
 EFFECT_SOUND_BASENAMES = {
     "click": "click",
+    "checkpoint": "checkpoint",
     "selectbutton": "selectbutton",
     "collectitem": "collectitem",
     "die": "die",
@@ -61,6 +62,9 @@ def _patch_wmf_destructor():
 
     pyglet_wmf.WMFSource.__del__ = safe_del
     _wmf_destructor_patched = True
+
+
+_patch_wmf_destructor()
 
 
 def _resolve_sound_path(sound_name):

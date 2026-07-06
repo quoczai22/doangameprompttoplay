@@ -47,6 +47,7 @@ class Bot(arcade.Sprite):
         self.turn_lock_time = 0.18
 
         self.max_safe_drop_tiles = BOT_MAX_SAFE_DROP_TILES
+        self.min_landing_support_tiles = 3
         self.enable_platform_drop = ENABLE_BOT_PLATFORM_DROP_TEST
         self.is_dropping_from_platform = False
         self.use_pathfinding_support = ENABLE_PATHFINDING_SUPPORT
@@ -161,7 +162,22 @@ class Bot(arcade.Sprite):
                 return True
         return False
 
-    def _get_safe_drop_distance(self, wall_lists, hazard_lists):
+    def _has_clear_landing_area(self, x, y, wall_lists, hazard_lists):
+        tile_size = 32 * TILE_SCALING
+        required_tiles = self.min_landing_support_tiles
+        direction = 1 if self.character_face_direction == RIGHT_FACING else -1
+
+        for tile_offset in range(required_tiles):
+            probe_x = x + (direction * tile_offset * tile_size)
+            if not self._has_support_at(probe_x, y, wall_lists):
+                return False
+
+            if self._has_hazard_at(probe_x, y + tile_size, hazard_lists):
+                return False
+
+        return True
+
+    def _find_safe_drop_landing(self, wall_lists, hazard_lists):
         if not wall_lists:
             return None
 
@@ -175,9 +191,15 @@ class Bot(arcade.Sprite):
                 return None
 
             if self._has_support_at(front_x, probe_y, wall_lists):
-                return level
+                if level == 0 or self._has_clear_landing_area(front_x, probe_y, wall_lists, hazard_lists):
+                    return level, probe_y
+                return None
 
         return None
+
+    def _get_safe_drop_distance(self, wall_lists, hazard_lists):
+        landing = self._find_safe_drop_landing(wall_lists, hazard_lists)
+        return landing[0] if landing else None
 
     def _get_immediate_front_support(self, wall_lists):
         front_x = self._get_front_edge_probe_x()
@@ -191,8 +213,7 @@ class Bot(arcade.Sprite):
         if abs(self.change_y) > 0.1:
             return False
 
-        safe_drop = self._get_safe_drop_distance(wall_lists, hazard_lists)
-        return safe_drop is None
+        return not self._get_immediate_front_support(wall_lists)
 
     def should_drop_from_platform(self, wall_lists, hazard_lists):
         if not self.enable_platform_drop or abs(self.change_y) > 0.1:
@@ -202,8 +223,8 @@ class Bot(arcade.Sprite):
         if has_front_support:
             return False
 
-        safe_drop = self._get_safe_drop_distance(wall_lists, hazard_lists)
-        return safe_drop is not None and safe_drop > 0
+        landing = self._find_safe_drop_landing(wall_lists, hazard_lists)
+        return landing is not None and landing[0] > 0
 
     def _trace_bresenham_cells(self, start, end, walls):
         x0, y0 = start
@@ -358,8 +379,7 @@ class Bot(arcade.Sprite):
             return
 
         hit_wall = self.check_wall(wall_lists)
-        can_drop = self.should_drop_from_platform(wall_lists, hazard_lists)
-        avoid_edge = self.avoid_ledges and (not can_drop) and self.should_avoid_edge(wall_lists, hazard_lists)
+        avoid_edge = self.avoid_ledges and self.should_avoid_edge(wall_lists, hazard_lists)
 
         if hit_wall or avoid_edge:
             self.flip_direction()

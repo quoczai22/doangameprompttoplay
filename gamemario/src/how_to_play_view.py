@@ -33,7 +33,8 @@ class HowToPlayView(arcade.View):
 
             "LƯU Ý:\n"
             "- Hãy tránh các bẫy như gai, vật cản chuyển động\n"
-            "- Quái vật có thể tuần tra, truy đuổi và tấn công bạn",
+            "- Quái vật có thể tuần tra, truy đuổi và tấn công bạn\n"
+            "- Mọi lỗi trong game đều là tính năng của game =))\n",
 
             "MỤC TIÊU CUỐI CÙNG:\n"
             "Vượt qua màn chơi và chạm vào vạch đích để chiến thắng.\n\n"

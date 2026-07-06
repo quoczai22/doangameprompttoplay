@@ -45,6 +45,18 @@ LEVEL_OPTIONS = [
         "preview": "level_preview_map4.png",
         "accent": (144, 214, 92),
     },
+    {
+        "label": "MÀN 5",
+        "subtitle": "Chương 5 - Thử thách cuối",
+        "preview": "level_preview_map5.png",
+        "accent": (238, 204, 82),
+    },
+    {
+        "label": "MÀN 6",
+        "subtitle": "Chương 6 - Chặng đường cuối",
+        "preview": "level_preview_map6.png",
+        "accent": (96, 174, 238),
+    },
 ]
 
 
@@ -58,21 +70,36 @@ class LevelSelectView(arcade.View):
         self.blink_timer = 0.0
         self.show_selected = True
 
-        spacing = min(285, (SCREEN_WIDTH - 270) / max(1, len(LEVEL_OPTIONS) - 1))
-        start_x = SCREEN_WIDTH / 2 - spacing * (len(LEVEL_OPTIONS) - 1) / 2
-        y = SCREEN_HEIGHT / 2 + 20
+        self.columns = 3
+        self.card_width = 210
+        self.selected_card_width = self.card_width + 14
+        self.card_height = 190
+        self.selected_card_height = self.card_height + 12
+        self.preview_width = self.card_width - 28
+        self.selected_preview_width = self.selected_card_width - 28
+        self.preview_height = 86
+        self.selected_preview_height = self.selected_preview_width * 0.6
+        self.column_spacing = 245
+        self.row_spacing = 218
+        top_y = SCREEN_HEIGHT / 2 + 92
 
         for index, option in enumerate(LEVEL_OPTIONS):
-            center_x = start_x + spacing * index
-            self.card_centers.append((center_x, y))
+            row = index // self.columns
+            column = index % self.columns
+            row_count = min(self.columns, len(LEVEL_OPTIONS) - row * self.columns)
+            row_width = self.column_spacing * (row_count - 1)
+            start_x = SCREEN_WIDTH / 2 - row_width / 2
+            center_x = start_x + self.column_spacing * column
+            center_y = top_y - self.row_spacing * row
+            self.card_centers.append((center_x, center_y))
 
             image_path = os.path.join(ASSETS_PATH, "images", option["preview"])
             if os.path.exists(image_path):
                 sprite = arcade.Sprite(image_path)
                 sprite.center_x = center_x
-                sprite.center_y = y + 25
-                sprite.width = 210
-                sprite.height = 126
+                sprite.center_y = center_y + 34
+                sprite.width = self.preview_width
+                sprite.height = self.preview_height
                 sprite_list = arcade.SpriteList()
                 sprite_list.append(sprite)
             else:
@@ -84,7 +111,7 @@ class LevelSelectView(arcade.View):
         self.title_text = PixelText(
             "CHỌN MÀN CHƠI",
             SCREEN_WIDTH / 2,
-            SCREEN_HEIGHT - 90,
+            SCREEN_HEIGHT - 64,
             UI_TITLE_COLOR,
             size=34,
             anchor_x="center",
@@ -93,9 +120,9 @@ class LevelSelectView(arcade.View):
         self.help_text = PixelText(
             "A/D hoặc ←/→ để đổi màn  |  ENTER để chơi  |  ESC để quay lại",
             SCREEN_WIDTH / 2,
-            62,
+            38,
             UI_MAIN_TEXT_COLOR,
-            size=13,
+            size=12,
             anchor_x="center"
         )
 
@@ -122,8 +149,8 @@ class LevelSelectView(arcade.View):
     def draw_level_card(self, index, option):
         center_x, center_y = self.card_centers[index]
         is_selected = index == self.selected_index
-        card_width = 245 if is_selected else 225
-        card_height = 270 if is_selected else 250
+        card_width = self.selected_card_width if is_selected else self.card_width
+        card_height = self.selected_card_height if is_selected else self.card_height
         border_width = 4 if is_selected else 2
         border_color = UI_SELECTED_COLOR if is_selected else UI_MUTED_TEXT_COLOR
         fill_color = UI_PANEL_SELECTED_COLOR if is_selected else UI_PANEL_COLOR
@@ -148,34 +175,34 @@ class LevelSelectView(arcade.View):
         preview_sprite = self.preview_sprites[index]
         if preview_sprite:
             preview_sprite.center_x = center_x
-            preview_sprite.center_y = center_y + 48
-            preview_sprite.width = 210 if not is_selected else 222
-            preview_sprite.height = 126 if not is_selected else 134
+            preview_sprite.center_y = center_y + 36
+            preview_sprite.width = self.preview_width if not is_selected else self.selected_preview_width
+            preview_sprite.height = self.preview_height if not is_selected else self.selected_preview_height
             self.preview_sprite_lists[index].draw()
         else:
-            self.draw_fallback_preview(center_x, center_y + 48, option["accent"], is_selected)
+            self.draw_fallback_preview(center_x, center_y + 36, option["accent"], is_selected)
 
         PixelText(
             option["label"],
             center_x,
-            center_y - 68,
+            center_y - 48,
             UI_TITLE_COLOR if is_selected else UI_SECONDARY_TEXT_COLOR,
-            size=19 if is_selected else 16,
+            size=14,
             anchor_x="center",
-            bold=is_selected
+            bold=False
         ).draw()
         PixelText(
             option["subtitle"],
             center_x,
-            center_y - 104,
+            center_y - 80,
             UI_MAIN_TEXT_COLOR if is_selected else UI_MUTED_TEXT_COLOR,
-            size=11,
+            size=9,
             anchor_x="center"
         ).draw()
 
     def draw_fallback_preview(self, center_x, center_y, accent_color, is_selected):
-        width = 210 if not is_selected else 222
-        height = 126 if not is_selected else 134
+        width = self.preview_width if not is_selected else self.selected_preview_width
+        height = self.preview_height if not is_selected else self.selected_preview_height
         left = center_x - width / 2
         bottom = center_y - height / 2
 
@@ -193,13 +220,30 @@ class LevelSelectView(arcade.View):
             3
         )
 
-    def select_previous(self):
-        self.selected_index = (self.selected_index - 1) % len(LEVEL_OPTIONS)
+    def move_selection(self, delta_row=0, delta_column=0):
+        row = self.selected_index // self.columns
+        column = self.selected_index % self.columns
+        target_row = row + delta_row
+        target_column = column + delta_column
+        row_count = (len(LEVEL_OPTIONS) + self.columns - 1) // self.columns
+
+        if delta_column:
+            current_row_count = min(self.columns, len(LEVEL_OPTIONS) - row * self.columns)
+            target_column %= current_row_count
+
+        if delta_row:
+            target_row %= row_count
+            target_row_count = min(self.columns, len(LEVEL_OPTIONS) - target_row * self.columns)
+            target_column = min(column, target_row_count - 1)
+
+        self.selected_index = target_row * self.columns + target_column
         play_effect("selectbutton", volume=0.65)
 
+    def select_previous(self):
+        self.move_selection(delta_column=-1)
+
     def select_next(self):
-        self.selected_index = (self.selected_index + 1) % len(LEVEL_OPTIONS)
-        play_effect("selectbutton", volume=0.65)
+        self.move_selection(delta_column=1)
 
     def start_selected_level(self):
         play_effect("selectbutton", volume=0.78)
@@ -207,9 +251,11 @@ class LevelSelectView(arcade.View):
         from LoadMap2 import LoadMap2
         from LoadMap3 import LoadMap3
         from LoadMap4 import LoadMap4
+        from LoadMap5 import LoadMap5
+        from LoadMap6 import LoadMap6
         from how_to_play_view import HowToPlayView
 
-        level_classes = [LoadMap1, LoadMap2, LoadMap3, LoadMap4]
+        level_classes = [LoadMap1, LoadMap2, LoadMap3, LoadMap4, LoadMap5, LoadMap6]
         selected_level_class = level_classes[self.selected_index]
         selected_label = LEVEL_OPTIONS[self.selected_index]["label"]
         next_view = HowToPlayView(
@@ -220,10 +266,14 @@ class LevelSelectView(arcade.View):
         self.window.show_view(next_view)
 
     def on_key_press(self, key, modifiers):
-        if key in (arcade.key.LEFT, arcade.key.A, arcade.key.UP, arcade.key.W):
+        if key in (arcade.key.LEFT, arcade.key.A):
             self.select_previous()
-        elif key in (arcade.key.RIGHT, arcade.key.D, arcade.key.DOWN, arcade.key.S):
+        elif key in (arcade.key.RIGHT, arcade.key.D):
             self.select_next()
+        elif key in (arcade.key.UP, arcade.key.W):
+            self.move_selection(delta_row=-1)
+        elif key in (arcade.key.DOWN, arcade.key.S):
+            self.move_selection(delta_row=1)
         elif key == arcade.key.ENTER:
             self.start_selected_level()
         elif key == arcade.key.ESCAPE:

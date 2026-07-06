@@ -1,4 +1,5 @@
 import arcade
+import math
 import random
 from Settings import *
 from utils import load_game_map
@@ -33,6 +34,7 @@ class BaseLevel(arcade.View):
         self.moving_platforms_list = arcade.SpriteList()
         self.saw_moving_list = arcade.SpriteList()
         self.ball_moving_list = arcade.SpriteList()
+        self.trampoline_list = arcade.SpriteList()
         self.enemy_list = arcade.SpriteList()
 
         self.enemy_physics_engines = {}
@@ -50,6 +52,8 @@ class BaseLevel(arcade.View):
         self.is_paused = False
         self.pause_selected_index = 0
         self.pause_options = [
+            {"label": "CHƠI LẠI", "action": "restart"},
+            {"label": "CÀI ĐẶT", "action": "settings"},
             {"label": "TIẾP TỤC", "action": "resume"},
             {"label": "TRANG CHỦ", "action": "home"},
             {"label": "THOÁT", "action": "exit"},
@@ -57,6 +61,23 @@ class BaseLevel(arcade.View):
 
     def on_show_view(self):
         stop_menu_music()
+
+    def get_render_view_left(self):
+        return round(self.view_left)
+
+    def update_respawn_to_nearest_checkpoint(self):
+        if not self.player:
+            return
+
+        activated_checkpoints = [cp for cp in self.checkpoints if cp.activated]
+        if not activated_checkpoints:
+            return
+
+        nearest_checkpoint = min(
+            activated_checkpoints,
+            key=lambda cp: (cp.center_x - self.player.center_x) ** 2 + (cp.center_y - self.player.center_y) ** 2,
+        )
+        self.respawn_x, self.respawn_y = nearest_checkpoint.center_x, nearest_checkpoint.center_y
 
     def load_level_setup(self, map_name):
         self.tile_map, self.scene, self.map_width_pixels = load_game_map(map_name)
@@ -229,6 +250,9 @@ class BaseLevel(arcade.View):
             self.start_points.update_animation(delta_time)
             self.checkpoints.update_animation(delta_time)
             self.end_points.update_animation(delta_time)
+            if self.tile_map and "Traps" in self.tile_map.sprite_lists:
+                self.tile_map.sprite_lists["Traps"].update_animation(delta_time)
+            self.trampoline_list.update_animation(delta_time)
             self.fruits_list.update_animation(delta_time)
 
             for ball in self.projectiles:
@@ -267,6 +291,10 @@ class BaseLevel(arcade.View):
                     if arcade.check_for_collision_with_list(self.player, self.tile_map.sprite_lists["Hazards"]):
                         hazard_hit = True
 
+                if not hazard_hit and "Traps" in self.tile_map.sprite_lists:
+                    if arcade.check_for_collision_with_list(self.player, self.tile_map.sprite_lists["Traps"]):
+                        hazard_hit = True
+
                 if not hazard_hit and len(self.saw_moving_list) > 0:
                     if arcade.check_for_collision_with_list(self.player, self.saw_moving_list):
                         hazard_hit = True
@@ -274,6 +302,16 @@ class BaseLevel(arcade.View):
                 if not hazard_hit and len(self.ball_moving_list) > 0:
                     if arcade.check_for_collision_with_list(self.player, self.ball_moving_list):
                         hazard_hit = True
+
+            for trampoline in self.trampoline_list:
+                horizontal_overlap = self.player.right > trampoline.left and self.player.left < trampoline.right
+                feet_on_top = abs(self.player.bottom - trampoline.top) <= 8
+                landed_on_trampoline = horizontal_overlap and feet_on_top
+                if self.player.change_y <= 0 and landed_on_trampoline and trampoline.bounce():
+                    self.player.bottom = trampoline.top
+                    self.player.change_y = trampoline.bounce_speed
+                    play_effect("jump", volume=0.78)
+                    break
 
             if hazard_hit:
                 if self.player.is_big:
@@ -293,7 +331,8 @@ class BaseLevel(arcade.View):
             for cp in arcade.check_for_collision_with_list(self.player, self.checkpoints):
                 if not cp.activated:
                     cp.activate()
-                    self.respawn_x, self.respawn_y = cp.center_x, cp.center_y
+                    play_effect("checkpoint", volume=0.82)
+                self.update_respawn_to_nearest_checkpoint()
 
             for ep in arcade.check_for_collision_with_list(self.player, self.end_points):
                 if not ep.activated:
@@ -303,7 +342,7 @@ class BaseLevel(arcade.View):
                     self.player.play_disappear()
 
         if self.camera:
-            self.camera.position = (self.view_left + GAME_WIDTH / 2, GAME_HEIGHT / 2)
+            self.camera.position = (self.get_render_view_left() + GAME_WIDTH / 2, GAME_HEIGHT / 2)
 
     def on_draw(self):
         self.clear()
@@ -317,7 +356,7 @@ class BaseLevel(arcade.View):
         if self.fade_alpha > 0 and self.camera:
             self.camera.use()
             arcade.draw_rect_filled(
-                arcade.LBWH(self.view_left, 0, GAME_WIDTH, GAME_HEIGHT),
+                arcade.LBWH(self.get_render_view_left(), 0, GAME_WIDTH, GAME_HEIGHT),
                 (0, 0, 0, int(self.fade_alpha))
             )
 
@@ -325,7 +364,7 @@ class BaseLevel(arcade.View):
             self.draw_pause_menu()
 
     def draw_pause_menu(self):
-        panel_center_x = self.view_left + GAME_WIDTH / 2
+        panel_center_x = self.get_render_view_left() + GAME_WIDTH / 2
         panel_center_y = GAME_HEIGHT / 2
 
         arcade.draw_rect_filled(
@@ -333,11 +372,11 @@ class BaseLevel(arcade.View):
             (0, 0, 0, 125)
         )
         arcade.draw_rect_filled(
-            arcade.XYWH(panel_center_x, panel_center_y + 10, 430, 330),
+            arcade.XYWH(panel_center_x, panel_center_y + 10, 460, 370),
             UI_PANEL_COLOR
         )
         arcade.draw_rect_outline(
-            arcade.XYWH(panel_center_x, panel_center_y + 10, 430, 330),
+            arcade.XYWH(panel_center_x, panel_center_y + 10, 460, 370),
             UI_SELECTED_COLOR,
             4
         )
@@ -352,20 +391,56 @@ class BaseLevel(arcade.View):
             bold=True
         ).draw()
 
-        start_y = panel_center_y + 40
-        for index, option in enumerate(self.pause_options):
+        icon_y = panel_center_y + 64
+        icon_positions = {
+            0: panel_center_x - 58,
+            1: panel_center_x + 58,
+        }
+
+        for index in (0, 1):
+            option = self.pause_options[index]
             is_selected = index == self.pause_selected_index
-            y = start_y - index * 62
+            fill_color = UI_PANEL_SELECTED_COLOR if is_selected else UI_PANEL_COLOR
+            border_color = UI_SELECTED_COLOR if is_selected else UI_MUTED_TEXT_COLOR
+            text_color = UI_TITLE_COLOR if is_selected else UI_SECONDARY_TEXT_COLOR
+            x = icon_positions[index]
+
+            arcade.draw_rect_filled(
+                arcade.XYWH(x, icon_y, 82, 72),
+                fill_color
+            )
+            arcade.draw_rect_outline(
+                arcade.XYWH(x, icon_y, 82, 72),
+                border_color,
+                3 if is_selected else 2
+            )
+
+            self.draw_pause_icon(option["action"], x, icon_y + 9, text_color)
+
+            PixelText(
+                option["label"],
+                x,
+                icon_y - 27,
+                text_color,
+                size=8,
+                anchor_x="center",
+                bold=is_selected
+            ).draw()
+
+        start_y = panel_center_y - 22
+        for index, option in enumerate(self.pause_options[2:], start=2):
+            is_selected = index == self.pause_selected_index
+            y = start_y - (index - 2) * 58
             fill_color = UI_PANEL_SELECTED_COLOR if is_selected else UI_PANEL_COLOR
             border_color = UI_SELECTED_COLOR if is_selected else UI_MUTED_TEXT_COLOR
             text_color = UI_TITLE_COLOR if is_selected else UI_SECONDARY_TEXT_COLOR
 
             arcade.draw_rect_filled(
-                arcade.XYWH(panel_center_x, y, 250, 44),
+                arcade.XYWH(panel_center_x, y, 250, 42),
                 fill_color
             )
             arcade.draw_rect_outline(
-                arcade.XYWH(panel_center_x, y, 250, 44),
+                arcade.XYWH(panel_center_x, y, 250, 42),
                 border_color,
                 3 if is_selected else 2
             )
@@ -379,14 +454,40 @@ class BaseLevel(arcade.View):
                 bold=is_selected
             ).draw()
 
-        PixelText(
-            "W/S hoặc ↑/↓ để chọn  |  ENTER xác nhận  |  ESC tiếp tục",
-            panel_center_x,
-            panel_center_y - 135,
-            UI_MAIN_TEXT_COLOR,
-            size=10,
-            anchor_x="center"
-        ).draw()
+    def draw_pause_icon(self, action, center_x, center_y, color):
+        if action == "restart":
+            self.draw_restart_icon(center_x, center_y, color)
+        elif action == "settings":
+            self.draw_settings_icon(center_x, center_y, color)
+
+    def draw_restart_icon(self, center_x, center_y, color):
+        arcade.draw_arc_outline(center_x, center_y, 34, 34, color, 35, 315, 4)
+        points = [
+            (center_x + 12, center_y + 18),
+            (center_x + 25, center_y + 15),
+            (center_x + 17, center_y + 4),
+        ]
+        arcade.draw_polygon_filled(points, color)
+        arcade.draw_line(center_x - 8, center_y, center_x + 8, center_y, color, 4)
+        arcade.draw_line(center_x - 8, center_y, center_x - 1, center_y + 8, color, 4)
+
+    def draw_settings_icon(self, center_x, center_y, color):
+        arcade.draw_circle_outline(center_x, center_y, 18, color, 4)
+        arcade.draw_circle_filled(center_x, center_y, 6, color)
+        for angle in range(0, 360, 45):
+            radians = math.radians(angle)
+            dx = math.cos(radians) * 25
+            dy = math.sin(radians) * 25
+            arcade.draw_rect_filled(
+                arcade.XYWH(center_x + dx, center_y + dy, 8, 8),
+                color
+            )
+
+    def restart_level(self):
+        next_view = self.__class__(character_folder=getattr(self, "character_folder", "Pink Man"))
+        if hasattr(next_view, "setup"):
+            next_view.setup()
+        self.window.show_view(next_view)
 
     def reset_player(self):
         self.player.center_x, self.player.center_y = self.respawn_x, self.respawn_y
@@ -411,7 +512,19 @@ class BaseLevel(arcade.View):
         play_effect("selectbutton", volume=0.7)
 
     def move_pause_selection(self, direction):
-        self.pause_selected_index = (self.pause_selected_index + direction) % len(self.pause_options)
+        if self.pause_selected_index in (0, 1):
+            self.pause_selected_index = 2 if direction > 0 else len(self.pause_options) - 1
+        elif self.pause_selected_index == 2 and direction < 0:
+            self.pause_selected_index = 0
+        elif self.pause_selected_index == len(self.pause_options) - 1 and direction > 0:
+            self.pause_selected_index = 0
+        else:
+            self.pause_selected_index = (self.pause_selected_index + direction) % len(self.pause_options)
+        play_effect("selectbutton", volume=0.65)
+
+    def move_pause_icon_selection(self, direction):
+        if self.pause_selected_index in (0, 1):
+            self.pause_selected_index = 1 if self.pause_selected_index == 0 else 0
         play_effect("selectbutton", volume=0.65)
 
     def activate_pause_selection(self):
@@ -420,6 +533,12 @@ class BaseLevel(arcade.View):
 
         if action == "resume":
             self.is_paused = False
+        elif action == "restart":
+            stop_all_sounds()
+            self.restart_level()
+        elif action == "settings":
+            from settings_view import SettingsView
+            self.window.show_view(SettingsView(return_view=self))
         elif action == "home":
             from menu_view import MenuView
             self.window.show_view(MenuView())
@@ -433,6 +552,8 @@ class BaseLevel(arcade.View):
                 self.move_pause_selection(-1)
             elif key in (arcade.key.DOWN, arcade.key.S):
                 self.move_pause_selection(1)
+            elif key in (arcade.key.LEFT, arcade.key.A, arcade.key.RIGHT, arcade.key.D):
+                self.move_pause_icon_selection(1)
             elif key == arcade.key.ENTER:
                 self.activate_pause_selection()
             elif key == arcade.key.ESCAPE:

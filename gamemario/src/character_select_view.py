@@ -25,8 +25,9 @@ CHARACTER_OPTIONS = [
 
 
 class CharacterSelectView(arcade.View):
-    def __init__(self):
+    def __init__(self, return_view=None):
         super().__init__()
+        self.return_view = return_view
         current_character = get_selected_character_folder()
         self.selected_index = next(
             (
@@ -127,8 +128,11 @@ class CharacterSelectView(arcade.View):
         play_effect("selectbutton", volume=0.78)
         selected_folder = CHARACTER_OPTIONS[self.selected_index]["folder"]
         set_selected_character_folder(selected_folder)
-        from settings_view import SettingsView
-        self.window.show_view(SettingsView())
+        if self.return_view is not None:
+            self.window.show_view(self.return_view)
+        else:
+            from settings_view import SettingsView
+            self.window.show_view(SettingsView())
 
     def on_key_press(self, key, modifiers):
         if key in (arcade.key.LEFT, arcade.key.A):
@@ -139,5 +143,8 @@ class CharacterSelectView(arcade.View):
             self.save_selection()
         elif key == arcade.key.ESCAPE:
             play_effect("selectbutton", volume=0.7)
-            from settings_view import SettingsView
-            self.window.show_view(SettingsView())
+            if self.return_view is not None:
+                self.window.show_view(self.return_view)
+            else:
+                from settings_view import SettingsView
+                self.window.show_view(SettingsView())

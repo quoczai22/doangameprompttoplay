@@ -12,6 +12,14 @@ def load_game_map(map_name):
         "Ground": {"use_spatial_hash": True},
         "Solid Floating Platforms": {"use_spatial_hash": True},
         "Boundary Walls": {"use_spatial_hash": True},
+        "Hazards": {"use_spatial_hash": True},
+        "Traps": {"use_spatial_hash": True},
+        "Start": {"use_spatial_hash": True},
+        "Checkpoints": {"use_spatial_hash": True},
+        "End": {"use_spatial_hash": True},
+        "Elevator_Platforms": {"use_spatial_hash": True},
+        "Elevator_Platfroms": {"use_spatial_hash": True},
+        "Trampoline": {"use_spatial_hash": True},
     }
 
     try:

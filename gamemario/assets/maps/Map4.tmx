@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="150" height="25" tilewidth="16" tileheight="16" infinite="0" nextlayerid="18" nextobjectid="17">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="150" height="25" tilewidth="16" tileheight="16" infinite="0" nextlayerid="18" nextobjectid="19">
  <tileset firstgid="1" name="Terrain (16x16)" tilewidth="16" tileheight="16" tilecount="242" columns="22">
   <image source="../../Free/Terrain/Terrain (16x16).png" width="352" height="176"/>
  </tileset>
@@ -84,6 +84,17 @@
    <image source="../../Free/Traps/Rock Head/Idle.png" width="42" height="42"/>
   </tile>
  </tileset>
+ <tileset firstgid="275" name="Saw2" tilewidth="38" tileheight="38" tilecount="1" columns="0">
+  <grid orientation="orthogonal" width="1" height="1"/>
+  <tile id="0">
+   <properties>
+    <property name="boundary_left" type="int" value="108"/>
+    <property name="boundary_right" type="int" value="113"/>
+    <property name="change_x" type="int" value="2"/>
+   </properties>
+   <image source="../../Free/Traps/Saw/Off.png" width="38" height="38"/>
+  </tile>
+ </tileset>
  <layer id="13" name="Background" width="150" height="25">
   <data encoding="base64" compression="zstd">
    KLUv/WCYObUFAJQDAAEBAAACAQAAAwEAAAQBBQEAAAYBAAAHAQAACAEJAQAACgEAAAsBAAAMAQ0BAAAOAQAADwEAABABNqjg2e8wAipo2QcR/P//XmFn9hmzlqH8DBJvGcrPIMOWUfkZaNAylp+BBy1j+Rm4oGUsPwMPWsbyM/CgZUx+Bh60jOVn4EHLWH4GLmgZy8/Ag5ax/Aw8aBmTn4EHLWP5GXjQMpafgawNG2bM9YZhgd4wbNgbBj9xTGV2
@@ -96,27 +107,27 @@
  </layer>
  <layer id="14" name="Saw_Moving" width="150" height="25">
   <data encoding="base64" compression="zstd">
-   KLUv/WCYOXUAABgA/AACACMA8Mim9I4N
-  </data>
- </layer>
- <layer id="3" name="Solid Floating Platforms" width="150" height="25">
-  <data encoding="base64" compression="zstd">
-   KLUv/WCYOYUNANLGEx3AJa0B/+/6f+BI49saaSW0RvhZ3/yC3fj2TRqcFMsSpZS7Y52yM1uW7gxDC/FDOmd4AaHLqagnU4sszAEYN2l54itCfvyehA9au+CBigGAjqAwcyXLAbACCiQQoao67eLnHDTJpAv/c++cRM+XgC+O90RfCBSUygd+2j4RABdNMnWjz3GUM++slvT+gPmlB97ygszgFDpwfsT2CTH4z1Ld6E/hLZxWWzr+iOarkeDgpRBKFkBTh0HntJr0Tf+BR+Lfl2xZN/uOUXG6kyaWIDegg/wHDgl/X9oyhm4CMEtSE0eO0ujQxJawihOvLeq8k3+Pc0w3dhrwPVQG1PheUWXUpPKmNcMaynmDfAyN2gVGUKrpIVtaAKdG0eApaUvzKUXFy7A6a06JLUVpvIyEvYwaEAUT6dBPP0DHCFZPbjEjYrtDhVA363xZ9PopT93YbLMzhPG+pRT1DLa9QarNz0zMXKpbbiEYzpyBArPA0C+gZof6BPRzIIWzIrczFXX+xfCKumIdOAUiCn1SbckrxtUAWLWfVcsMXKmPgdq1JfW8pXaLatdTuaJV7PDTGA==
+   KLUv/WCYOd0AADAAEwEA/AAFAA0Jeii9ca7AWlBh0aAaYqN3Vw==
   </data>
  </layer>
  <layer id="4" name="Hazards" width="150" height="25">
   <data encoding="base64" compression="zstd">
-   KLUv/WCYOX0EALAA+QAAYAD5AACg+fkA+fn5+fPz+fP5MqBw2XAgg0pK1A3l8he43Dtl5WlwmOjOk6QppFRka9QwdJEsTFZqWAdQrbGCSjWRUkCFUEEyqAlTb2m5cKNUOKNWoblM+ySjalxuC6n+ySRnAjWSkltG1ctS+1uMkmPh1RE/zIlTqjug+iymhV8oW/wDyqoggF9j
+   KLUv/WCYOX0EALAA+QAAYAD5AACg+fn5+fn58/nz+fP5NKBwuxxQAwVJQXXl8mNcbnTOij2vyVwnQC+YSXIoYSrpUTlQBb2J5cOtFEIVo9SQO1XFqAFUqKjWRHXhlBZSKqqNUG9pZWHIUhNdSq1RpH1ar8qmnOrcoab6TRVAR1A4ZVL9yM1RJVensoqFUPLd8h9QVAUBfNYC
+  </data>
+ </layer>
+ <layer id="3" name="Solid Floating Platforms" width="150" height="25">
+  <data encoding="base64" compression="zstd">
+   KLUv/WCYOQUOADKHExuwJ8MYDINn80q7tefeGnmj8PIiDdfS6iyROylri1IpWWnbtraocEJCdhbjC2RS4ogHndNhKtSX6CrHBJDjja/IAUd58tQ83HD3wQUfA4CcoEBzJcsBoIIKJBAZqzrd4g+JcWHRxGrdJ2Zsqej9kvT5EtAF8J7oC4A6RengENsnby7FWOFpZZKwjR6JLaH+evbuakvvj5hMcvCXLmSG00vCt5N5mm+fEMK3Vt3fbCNEb7m0RBmjIbja0vNHNF+NBAEvhVBn1ZgBVG4EOp9i6R/wQPy9fIvdEVFaPLAJ1DhdSBNP4FJ9/mNuiH9R3EIMdQowy1ITU5nSyRNbYsWFu5qHyS/gH9PpacJxYZJSJWvSS98rmjEjParJedOawhrqnCI+hsbqACM4jfTRFqwCowYRYE+lc1EHkJdh9Y8pabS/mVLCy0l3C08RUlDRDt355zSMYPXmi0EIIrS7qAt3s8+XS9dPMXVD086uswWq8wy2vWHVcjNNSNAp3KW4OQK1TLQ6+9RPTD8HMu4KudFL+TEsuxyTDT8KfWKtSSvGiTdUx4AaP1XLDLpSHwOlawuqeUftFtWuoXLFqtjhpzU=
   </data>
  </layer>
  <layer id="5" name="Ball_Moving" width="150" height="25">
   <data encoding="base64" compression="zstd">
-   KLUv/WCYOR0BAFgA+wD7APsA+wD7AAagEDgfsMMBK/N3/o9VI+PbU/6wx5cz
+   KLUv/WCYOR0BAFgA+wD7APsA+wD7AAagEDgfsMMBK/N3/o9Vb/u9rhpG6eUM
   </data>
  </layer>
  <layer id="17" name="Moving_Platforms" width="150" height="25">
   <data encoding="base64" compression="zstd">
-   KLUv/WCYOXUAABgAAQACAL4Deow28I4N
+   KLUv/WCYOXUAABgAAQACACINemxrescG
   </data>
  </layer>
  <objectgroup id="7" name="Start">
@@ -124,6 +135,7 @@
  </objectgroup>
  <objectgroup id="8" name="Checkpoints">
   <object id="3" gid="255" x="1282" y="242" width="64" height="64"/>
+  <object id="18" gid="255" x="1891.33" y="192.667" width="64" height="64"/>
  </objectgroup>
  <objectgroup id="10" name="End">
   <object id="8" gid="254" x="2099.33" y="304.667" width="64" height="64"/>

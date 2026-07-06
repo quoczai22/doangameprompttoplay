@@ -6,7 +6,10 @@ from pink_man import PinkMan
 from utils import create_physics
 from checkpoint import Checkpoint
 from end_point import EndPoint
+from start_point import StartPoint
+from animated_trap import AnimatedTrap
 from moving_platform import MovingPlatform
+from trampoline import Trampoline
 from mushroom import Mushroom
 from ai_algorithms import csp_spawn_positions
 from sound_manager import play_effect
@@ -23,6 +26,13 @@ class BaseMapLevel(BaseLevel):
         self.next_level_timer = 0.0
         self.is_switching_level = False
 
+    def resolve_boundary_value(self, value, tile_size):
+        value = float(value)
+        # Giá trị nhỏ thường là tọa độ tile trong Tiled; giá trị lớn coi như pixel.
+        if abs(value) <= self.tile_map.width + self.tile_map.height:
+            return value * tile_size + tile_size / 2
+        return value
+
     def setup(self):
         # GIỮ NGUYÊN LOGIC, chỉ thay "Map1.tmx" -> self.map_name
         self.load_level_setup(self.map_name)
@@ -32,8 +42,21 @@ class BaseMapLevel(BaseLevel):
         tile_w = self.tile_map.tile_width * TILE_SCALING
         tile_h = self.tile_map.tile_height * TILE_SCALING
 
-        self.respawn_x = 9 * tile_w + (tile_w / 2)
-        self.respawn_y = 6 * tile_h + (tile_h / 2)
+        # Đọc dữ liệu từ bản đồ Tiled để gắn sự kiện
+        if "Start" in self.tile_map.sprite_lists:
+            for sprite in self.tile_map.sprite_lists["Start"]:
+                start = StartPoint(sprite.center_x, sprite.center_y, sprite.texture, sprite.scale)
+                self.start_points.append(start)
+            self.tile_map.sprite_lists["Start"].clear()
+            self.scene.add_sprite_list("DynamicStartPoints", sprite_list=self.start_points)
+
+        if self.start_points:
+            self.respawn_x = self.start_points[0].center_x
+            self.respawn_y = self.start_points[0].center_y
+        else:
+            self.respawn_x = 9 * tile_w + (tile_w / 2)
+            self.respawn_y = 6 * tile_h + (tile_h / 2)
+
         self.player.center_x = self.respawn_x
         self.player.center_y = self.respawn_y
         self.scene.add_sprite("Player", self.player)
@@ -41,12 +64,11 @@ class BaseMapLevel(BaseLevel):
         self.player.normal_scale = self.player.scale
         self.player.is_big = False
         self.player.invincible_timer = self.respawn_invincible_time
-        self.player.spiked_ball_stock = 0
+        self.player.spiked_ball_stock = 1
         self.player.has_grown_big_once = False
         self.player.play_appear()
         play_effect("spawn", volume=0.65)
 
-        # Đọc dữ liệu từ bản đồ Tiled để gắn sự kiện
         if "Checkpoints" in self.tile_map.sprite_lists:
             for sprite in self.tile_map.sprite_lists["Checkpoints"]:
                 cp = Checkpoint(sprite.center_x, sprite.center_y, sprite.texture, sprite.scale)
@@ -61,17 +83,43 @@ class BaseMapLevel(BaseLevel):
             self.tile_map.sprite_lists["End"].clear()
             self.scene.add_sprite_list("DynamicEndPoints", sprite_list=self.end_points)
 
+        if "Traps" in self.tile_map.sprite_lists:
+            trap_layer = self.tile_map.sprite_lists["Traps"]
+            trap_sprites = list(trap_layer)
+            trap_layer.clear()
+            for sprite in trap_sprites:
+                frame_time = float(sprite.properties.get("frame_time", 0.04))
+                trap_layer.append(
+                    AnimatedTrap(
+                        sprite.center_x,
+                        sprite.center_y,
+                        sprite.texture,
+                        sprite.scale,
+                        frame_time=frame_time,
+                    )
+                )
+
+        if "Trampoline" in self.tile_map.sprite_lists:
+            trampoline_layer = self.tile_map.sprite_lists["Trampoline"]
+            trampoline_sprites = list(trampoline_layer)
+            trampoline_layer.clear()
+            for sprite in trampoline_sprites:
+                self.trampoline_list.append(
+                    Trampoline(sprite.center_x, sprite.center_y, sprite.texture, sprite.scale)
+                )
+            self.scene.add_sprite_list("DynamicTrampolines", sprite_list=self.trampoline_list)
+
         if "Moving_Platforms" in self.tile_map.sprite_lists:
             static_platforms = self.tile_map.sprite_lists["Moving_Platforms"]
             tile_w = self.tile_map.tile_width * TILE_SCALING
 
             for platform_sprite in static_platforms:
-                left_tile = float(platform_sprite.properties.get("boundary_left", 0))
-                right_tile = float(platform_sprite.properties.get("boundary_right", 0))
+                left_value = platform_sprite.properties.get("boundary_left", 0)
+                right_value = platform_sprite.properties.get("boundary_right", 0)
                 speed_x = float(platform_sprite.properties.get("change_x", 1))
 
-                b_left = left_tile * tile_w + tile_w / 2
-                b_right = right_tile * tile_w + tile_w / 2
+                b_left = self.resolve_boundary_value(left_value, tile_w)
+                b_right = self.resolve_boundary_value(right_value, tile_w)
 
                 platform = MovingPlatform(
                     x=platform_sprite.center_x,
@@ -85,6 +133,39 @@ class BaseMapLevel(BaseLevel):
                 self.moving_platforms_list.append(platform)
 
             static_platforms.clear()
+
+        elevator_layer_name = None
+        for candidate_name in ("Elevator_Platforms", "Elevator_Platfroms"):
+            if candidate_name in self.tile_map.sprite_lists:
+                elevator_layer_name = candidate_name
+                break
+
+        if elevator_layer_name:
+            elevator_platforms = self.tile_map.sprite_lists[elevator_layer_name]
+            tile_h = self.tile_map.tile_height * TILE_SCALING
+
+            for platform_sprite in elevator_platforms:
+                bottom_value = platform_sprite.properties.get("boundary_bottom", 0)
+                top_value = platform_sprite.properties.get("boundary_top", 0)
+                speed_y = float(platform_sprite.properties.get("change_y", 1))
+
+                b_bottom = self.resolve_boundary_value(bottom_value, tile_h)
+                b_top = self.resolve_boundary_value(top_value, tile_h)
+
+                platform = MovingPlatform(
+                    x=platform_sprite.center_x,
+                    y=platform_sprite.center_y,
+                    texture=platform_sprite.texture,
+                    scale=platform_sprite.scale,
+                    boundary_bottom=b_bottom,
+                    boundary_top=b_top,
+                    change_y=speed_y,
+                )
+                self.moving_platforms_list.append(platform)
+
+            elevator_platforms.clear()
+
+        if len(self.moving_platforms_list) > 0:
             self.scene.add_sprite_list("DynamicMovingPlatforms", sprite_list=self.moving_platforms_list)
 
         # GIỮ SAW Ở LAYER GỐC
@@ -116,7 +197,12 @@ class BaseMapLevel(BaseLevel):
                 ball_sprite.boundary_top = top_tile * tile_h + tile_h / 2
                 ball_sprite.change_y = speed_y
 
-        extra_platforms = self.moving_platforms_list if len(self.moving_platforms_list) > 0 else None
+        dynamic_platforms = []
+        if len(self.moving_platforms_list) > 0:
+            dynamic_platforms.append(self.moving_platforms_list)
+        if len(self.trampoline_list) > 0:
+            dynamic_platforms.append(self.trampoline_list)
+        extra_platforms = dynamic_platforms if dynamic_platforms else None
 
         # Gắn vật lý cho Người chơi
         self.physics_engine = create_physics(
@@ -191,6 +277,8 @@ class BaseMapLevel(BaseLevel):
             hazard_lists = []
             if "Hazards" in self.tile_map.sprite_lists:
                 hazard_lists.append(self.tile_map.sprite_lists["Hazards"])
+            if "Traps" in self.tile_map.sprite_lists:
+                hazard_lists.append(self.tile_map.sprite_lists["Traps"])
 
             # CẬP NHẬT QUÁI VẬT & VA CHẠM AI
             enemies_to_remove = []
@@ -279,10 +367,16 @@ class BaseMapLevel(BaseLevel):
                     elif layer == "Solid Floating Platforms":
                         floating_tiles.append((gx, gy))
 
-        if "Hazards" in self.tile_map.sprite_lists:
-            for sprite in self.tile_map.sprite_lists["Hazards"]:
-                hx, hy = int(sprite.center_x // tile_w), int(sprite.center_y // tile_h)
-                hazards.add((hx, hy))
+        for hazard_layer in ("Hazards", "Traps"):
+            if hazard_layer in self.tile_map.sprite_lists:
+                for sprite in self.tile_map.sprite_lists[hazard_layer]:
+                    left_gx = int(sprite.left // tile_w) - 1
+                    right_gx = int(sprite.right // tile_w) + 1
+                    bottom_gy = int(sprite.bottom // tile_h) - 1
+                    top_gy = int(sprite.top // tile_h) + 1
+                    for hx in range(left_gx, right_gx + 1):
+                        for hy in range(bottom_gy, top_gy + 1):
+                            hazards.add((hx, hy))
 
         self.grid_hazards = hazards.copy()
 
@@ -366,9 +460,17 @@ class BaseMapLevel(BaseLevel):
                 )
                 selected_positions.extend(remaining_result.get("positions", []))
 
-        extra_platforms = self.moving_platforms_list if len(self.moving_platforms_list) > 0 else None
+        dynamic_platforms = []
+        if len(self.moving_platforms_list) > 0:
+            dynamic_platforms.append(self.moving_platforms_list)
+        if len(self.trampoline_list) > 0:
+            dynamic_platforms.append(self.trampoline_list)
+        extra_platforms = dynamic_platforms if dynamic_platforms else None
 
         for (gx, gy) in selected_positions:
+            if (gx, gy) in hazards:
+                continue
+
             px = (gx * tile_w) + (tile_w / 2)
             py = (gy * tile_h) + (tile_h / 2)
 

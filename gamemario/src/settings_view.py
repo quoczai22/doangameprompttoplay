@@ -23,8 +23,9 @@ SETTINGS_OPTIONS = [
 
 
 class SettingsView(arcade.View):
-    def __init__(self):
+    def __init__(self, return_view=None):
         super().__init__()
+        self.return_view = return_view
         self.selected_index = 0
         self.notice_message = ""
         self.title_text = PixelText(
@@ -106,11 +107,11 @@ class SettingsView(arcade.View):
         play_effect("selectbutton", volume=0.78)
         if self.selected_index == 0:
             from audio_settings_view import AudioSettingsView
-            self.window.show_view(AudioSettingsView())
+            self.window.show_view(AudioSettingsView(return_view=self))
             return
 
         from character_select_view import CharacterSelectView
-        self.window.show_view(CharacterSelectView())
+        self.window.show_view(CharacterSelectView(return_view=self))
 
     def on_key_press(self, key, modifiers):
         if key in (arcade.key.UP, arcade.key.W):
@@ -121,5 +122,8 @@ class SettingsView(arcade.View):
             self.open_selected()
         elif key == arcade.key.ESCAPE:
             play_effect("selectbutton", volume=0.7)
-            from menu_view import MenuView
-            self.window.show_view(MenuView())
+            if self.return_view is not None:
+                self.window.show_view(self.return_view)
+            else:
+                from menu_view import MenuView
+                self.window.show_view(MenuView())
