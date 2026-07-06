@@ -332,6 +332,7 @@ class BaseMapLevel(BaseLevel):
                         self.player.is_big = False
                         self.player.scale = self.player.normal_scale
                         self.player.invincible_timer = 1.0
+                        play_effect("hurt", volume=0.78)
                         self.player.play_hit()
                     else:
                         self.is_dying = True

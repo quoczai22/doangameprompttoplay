@@ -320,6 +320,7 @@ class BaseLevel(arcade.View):
                     self.player.scale = self.player.normal_scale
                     self.player.bottom = old_bottom
                     self.player.invincible_timer = 1.5
+                    play_effect("hurt", volume=0.78)
                     self.player.play_hit()
                 else:
                     self.is_dying = True

@@ -25,6 +25,7 @@ EFFECT_SOUND_BASENAMES = {
     "selectbutton": "selectbutton",
     "collectitem": "collectitem",
     "die": "die",
+    "hurt": "hurt_sound",
     "jump": "jump",
     "spawn": "spawn",
     "throw": "throw",
